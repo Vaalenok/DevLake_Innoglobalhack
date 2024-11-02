@@ -1,5 +1,11 @@
 import flet as ft
 
+from database import engine, Base
+
+
+def init_db():
+    Base.metadata.create_all(engine)
+
 
 def main(page: ft.Page):
     page.title = "DevLake"
@@ -37,4 +43,6 @@ def main(page: ft.Page):
     page.go(page.route)
 
 
-ft.app(target=main, view=ft.AppView.WEB_BROWSER)
+if __name__ == "__main__":
+    ft.app(target=main, view=ft.AppView.WEB_BROWSER)
+    init_db()
