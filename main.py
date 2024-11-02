@@ -1,14 +1,10 @@
 import asyncio
-
 import flet as ft
 import front.routing as rtg
-
 from sqlalchemy import text
-
 from database import engine, Base, AsyncSessionLocal
 from initial_create_db import init_create_db
-from src.models import user, feedback, criteria_type, score, feedback_score, score_history
-from src.models.user import User
+import src.db_interface as db
 
 
 async def init_db():
@@ -34,6 +30,3 @@ async def main(page: ft.Page):
 
 if __name__ == "__main__":
     asyncio.run(ft.app(target=main, view=ft.AppView.WEB_BROWSER))
-
-
-
