@@ -28,7 +28,6 @@ async def main(page: ft.Page):
     page.title = "DevLake"
     await init_db()
 
-    def route_change(route):
     page.on_route_change = rtg.route_change
     page.on_view_pop = rtg.view_pop
     page.go(page.route)
