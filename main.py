@@ -1,15 +1,34 @@
+import asyncio
+
 import flet as ft
+import pandas as pd
+from faker import Faker
+import random
 
-from database import engine, Base
+from sqlalchemy import text
+
+from database import engine, Base, AsyncSessionLocal
+from initial_create_db import init_create_db
 from src.models import user, feedback, criteria_type, score, feedback_score, score_history
+from src.models.user import User
 
 
-def init_db():
-    Base.metadata.create_all(engine)
+async def init_db():
+    async with AsyncSessionLocal() as db:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        result = await db.execute(text("select count(*) from users"))
+        user_count = result.scalar()
+
+        if user_count == 0:
+            await init_create_db(db)
 
 
-def main(page: ft.Page):
+
+async def main(page: ft.Page):
     page.title = "DevLake"
+    await init_db()
 
     def route_change(route):
         page.views.clear()
@@ -44,6 +63,10 @@ def main(page: ft.Page):
     page.go(page.route)
 
 
+
+
 if __name__ == "__main__":
-    init_db()
-    ft.app(target=main, view=ft.AppView.WEB_BROWSER)
+    asyncio.run(ft.app(target=main, view=ft.AppView.WEB_BROWSER))
+
+
+

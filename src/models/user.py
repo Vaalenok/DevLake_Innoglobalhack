@@ -15,6 +15,7 @@ class User(Base):
     experience: Mapped[int]
     company: Mapped[str]
 
-    sent_feedback = relationship("Feedback", back_populates="reviewer")
-    get_feedback = relationship("Feedback", back_populates="under_reviewer")
-    score_history = relationship("ScoreHistory", back_populates="user")
+    sent_feedback = relationship("Feedback", back_populates="reviewer", foreign_keys="[Feedback.reviewer_id]")
+    get_feedback = relationship("Feedback", back_populates="under_reviewer", foreign_keys="[Feedback.under_reviewer_id]")
+    score_history = relationship("ScoreHistory", back_populates="user", foreign_keys="[ScoreHistory.user_id]")
+
