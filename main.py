@@ -1,6 +1,7 @@
 import flet as ft
 
 from database import engine, Base
+from src.models import user, feedback, criteria_type, score, feedback_score, score_history
 
 
 def init_db():
@@ -44,5 +45,5 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main, view=ft.AppView.WEB_BROWSER)
     init_db()
+    ft.app(target=main, view=ft.AppView.WEB_BROWSER)
