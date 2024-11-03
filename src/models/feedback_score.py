@@ -8,7 +8,7 @@ from database import Base
 
 
 class FeedbackScore(Base):
-    __tablename__ = 'feedbacks_scores'  # Исправлено, теперь используется __tablename__
+    __tablename__ = 'feedbacks_scores'
 
     # Поле для автоматической идентификации записи в промежуточной таблице
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

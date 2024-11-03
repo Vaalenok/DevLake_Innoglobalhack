@@ -1,4 +1,6 @@
 import asyncio
+from enum import Enum
+
 from fastapi import FastAPI
 from sqlalchemy import text
 from database import engine, Base, AsyncSessionLocal
@@ -7,9 +9,11 @@ from src.endpoints.users import router as users_router
 from src.endpoints.feedbacks import router as feedbacks_router
 
 from src.models import user, feedback, criteria_type, score, feedback_score, score_history
+from src.models.criteria_type import CriteriaType
 
 # Создаем экземпляр FastAPI
 app = FastAPI()
+
 
 # Определим событие запуска для инициализации базы данных
 @app.on_event("startup")
@@ -27,12 +31,13 @@ async def startup_event():
         if user_count == 0:
             await init_create_db(session)
 
+
 app.include_router(users_router)
 app.include_router(feedbacks_router)
-
 
 # Основной вызов для запуска FastAPI приложения
 if __name__ == "__main__":
     import uvicorn
+
     # Запуск приложения FastAPI с использованием Uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

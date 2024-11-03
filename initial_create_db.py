@@ -1,3 +1,8 @@
+import json
+import re
+import uuid
+from enum import Enum
+
 import pandas as pd
 from faker import Faker
 import random
@@ -5,11 +10,48 @@ import random
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.criteria_type import CriteriaType
 from src.models.feedback import Feedback
+from src.models.feedback_score import FeedbackScore
+from src.models.score import Score
 from src.models.user import User
 
 
+class CriteriaTypeEnum(Enum):
+    PROFESSIONALISM = 1
+    TEAMWORK = 2
+    COMMUNICATION_SKILL = 3
+    INITIATIVE = 4
+
+
+criteria_map = {
+    "профессионализм": CriteriaTypeEnum.PROFESSIONALISM,
+    "командная работа": CriteriaTypeEnum.TEAMWORK,
+    "коммуникабельность": CriteriaTypeEnum.COMMUNICATION_SKILL,
+    "инициативность": CriteriaTypeEnum.INITIATIVE,
+}
+
+
+def convert_russian_to_enum(russian_word):
+    # Приводим входное слово к нижнему регистру и удаляем лишние пробелы
+    normalized_word = russian_word.strip().lower()
+
+    # Пытаемся найти соответствующий элемент перечисления
+    if normalized_word in criteria_map:
+        return criteria_map[normalized_word].name
+    else:
+        raise ValueError(f"Неизвестный критерий: {russian_word}")
+
+
+
+
 async def init_create_db(db: AsyncSession) -> None:
+    async def get_criteria_id(name: str) -> uuid.UUID:
+        criteria = await db.execute(
+            select(CriteriaType).where(name == CriteriaType.name)
+        )
+        return criteria.scalars().first().id
+
     fake = Faker("ru_RU")
 
     file_path = 'assets/review_dataset.json'
@@ -46,6 +88,40 @@ async def init_create_db(db: AsyncSession) -> None:
 
     await db.commit()
 
+    for i in criteria_map.values():
+        criteria_type = CriteriaType(
+            name=i.name
+        )
+        db.add(criteria_type)
+    await db.commit()
+
+    with open("/Users/a.belozerov/PycharmProjects/DevLake_Innoglobalhack/assets/scores_dataset.txt", "r",
+              encoding='utf-8') as file:
+        data = file.read()
+
+    # Удаляем ненужные строки
+    cleaned_data = re.sub(r'LLM Evaluation of Employee based on Reviews: \d+\n', '', data)
+    cleaned_data2 = re.sub(r'Ошибка при декодировании JSON для отзыва \d+\. Повторная попытка\.\.\.', '', cleaned_data)
+
+    # Извлечение JSON объектов
+    scores_strings = re.findall(r'\{[^}]+\}', cleaned_data2)
+
+    scores = []
+    for score_str in scores_strings:
+        # Преобразование одинарных кавычек в двойные кавычки
+        valid_json_str = re.sub(r"(?<={|,)\s*'([^']*?)'\s*:", r'"\1":', score_str)
+        valid_json_str = re.sub(r":\s*'([^']*?)'\s*(?=,|})", r':"\1"', valid_json_str)
+        valid_json_str = valid_json_str.replace("'", '')
+        valid_json_str = valid_json_str.replace("_", ' ')
+        try:
+            score = json.loads(valid_json_str)
+            scores.append(score)
+        except json.JSONDecodeError as e:
+            scores.append({})
+            print(f"Ошибка декодирования JSON: {e}")
+            print(f"Проблемная строка: {valid_json_str}")
+
+    j = 0
     for _, row in df.iterrows():
         reviewer = await db.execute(
             select(User).where(User.external_id == row['ID_reviewer'])
@@ -60,16 +136,40 @@ async def init_create_db(db: AsyncSession) -> None:
         if reviewer is None or under_reviewer is None:
             continue
 
-        feedback = Feedback(
-            feedback=row['review'],
-            informativeness=random.uniform(1, 5),
-            objectivity=random.uniform(1, 5),
-            reviewer_id=reviewer.id,
-            under_reviewer_id=under_reviewer.id
-        )
+        if j >= len(scores)-2:
+            pass
+        else:
+            print(j, len(scores))
 
-        db.add(feedback)
+            feedback = Feedback(
+                feedback=row['review'],
+                informativeness = 0 if scores[j] == {} else scores[j]['информативность'],
+                objectivity= 0 if scores[j] == {} else scores[j]['объективность'],
+                reviewer_id=reviewer.id,
+                under_reviewer_id=under_reviewer.id
+            )
+
+            db.add(feedback)
+
+            for k in criteria_map.keys():
+                score = Score(
+                    score=0 if scores[j] == {} else scores[j][k + ' балл'],
+                    commentary='' if scores[j] == {} else scores[j][k + ' объяснение'],
+                    criteria_type_id=await get_criteria_id(convert_russian_to_enum(k)),
+
+                )
+
+                db.add(score)
+
+                await db.commit()
+
+                feedback_score = FeedbackScore(
+                    score_id=score.id,
+                    feedback_id=feedback.id
+                )
+
+                db.add(feedback_score)
+
+            j += 1
 
     await db.commit()
-
-
