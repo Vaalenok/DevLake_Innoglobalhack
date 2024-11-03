@@ -1,10 +1,8 @@
 import pandas as pd
 from faker import Faker
 import random
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.models.feedback import Feedback
 from src.models.user import User
 
@@ -71,5 +69,3 @@ async def init_create_db(db: AsyncSession) -> None:
         db.add(feedback)
 
     await db.commit()
-
-

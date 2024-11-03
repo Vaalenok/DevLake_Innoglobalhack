@@ -1,5 +1,4 @@
 import uuid
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -7,8 +6,8 @@ from database import AsyncSessionLocal
 from src.models.user import User  # Обратите внимание, что важно импортировать модель 'User'
 from src.schemas.user import UserSchema
 
-router = APIRouter()
 
+router = APIRouter()
 
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
@@ -38,4 +37,3 @@ async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession = Depends(get_db))
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
-

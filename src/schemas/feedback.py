@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from uuid import UUID
-
 from src.schemas.user import UserSchema
 
 
