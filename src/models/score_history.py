@@ -1,8 +1,6 @@
 from uuid import UUID, uuid4
-
 from sqlalchemy import ForeignKey, Float, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from database import Base
 
 

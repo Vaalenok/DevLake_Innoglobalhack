@@ -1,8 +1,6 @@
 from uuid import UUID, uuid4
-
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from database import Base
 
 
@@ -16,4 +14,3 @@ class Score(Base):
 
     feedbacks = relationship("Feedback", secondary="feedbacks_scores", back_populates="scores")
     criteria_type = relationship("CriteriaType", back_populates="scores")
-

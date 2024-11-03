@@ -6,7 +6,6 @@ from enum import Enum
 import pandas as pd
 from faker import Faker
 import random
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

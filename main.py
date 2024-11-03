@@ -1,15 +1,13 @@
-import asyncio
-from enum import Enum
-
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from database import engine, Base, AsyncSessionLocal
 from initial_create_db import init_create_db
 from src.endpoints.users import router as users_router
 from src.endpoints.feedbacks import router as feedbacks_router
-
 from src.models import user, feedback, criteria_type, score, feedback_score, score_history
 from src.models.criteria_type import CriteriaType
+
 
 # Создаем экземпляр FastAPI
 app = FastAPI()
@@ -34,6 +32,15 @@ async def startup_event():
 
 app.include_router(users_router)
 app.include_router(feedbacks_router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Основной вызов для запуска FastAPI приложения
 if __name__ == "__main__":
