@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Query
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from database import AsyncSessionLocal
@@ -26,3 +27,11 @@ async def get_feedbacks(
     )
     feedbacks = result.scalars().all()
     return feedbacks
+
+@router.get("/feedbacks/{fb_id}", response_model=FeedbackSchema)
+async def get_feedback_by_id(fb_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Feedback).where(fb_id == Feedback.id))
+    feedback = result.scalar_one_or_none()
+    if feedback is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return feedback

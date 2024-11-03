@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from database import AsyncSessionLocal
-from src.models.user import User  # Обратите внимание, что важно импортировать модель 'User'
+from src.models.user import User
 from src.schemas.user import UserSchema
 
 
