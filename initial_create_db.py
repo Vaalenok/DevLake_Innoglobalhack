@@ -14,6 +14,7 @@ from src.models.feedback import Feedback
 from src.models.feedback_score import FeedbackScore
 from src.models.score import Score
 from src.models.user import User
+from src.servicies.ai_module_service import rating_feedback
 
 
 class CriteriaTypeEnum(Enum):
@@ -136,39 +137,40 @@ async def init_create_db(db: AsyncSession) -> None:
             continue
 
         if j >= len(scores)-2:
-            pass
-        else:
-            print(j, len(scores))
+            scores[j] = await rating_feedback(row['review'])
 
-            feedback = Feedback(
-                feedback=row['review'],
-                informativeness = 0 if scores[j] == {} else scores[j]['информативность'],
-                objectivity= 0 if scores[j] == {} else scores[j]['объективность'],
-                reviewer_id=reviewer.id,
-                under_reviewer_id=under_reviewer.id
+        if scores[j] == {}:
+            scores[j] = await rating_feedback(row['review'])
+
+        feedback = Feedback(
+            feedback=row['review'],
+            informativeness = 0 if scores[j] == {} else scores[j]['информативность'],
+            objectivity= 0 if scores[j] == {} else scores[j]['объективность'],
+            reviewer_id=reviewer.id,
+            under_reviewer_id=under_reviewer.id
+        )
+
+        db.add(feedback)
+
+        for k in criteria_map.keys():
+            score = Score(
+                score=0 if scores[j] == {} else scores[j][k + ' балл'],
+                commentary='' if scores[j] == {} else scores[j][k + ' объяснение'],
+                criteria_type_id=await get_criteria_id(convert_russian_to_enum(k)),
+
             )
 
-            db.add(feedback)
+            db.add(score)
 
-            for k in criteria_map.keys():
-                score = Score(
-                    score=0 if scores[j] == {} else scores[j][k + ' балл'],
-                    commentary='' if scores[j] == {} else scores[j][k + ' объяснение'],
-                    criteria_type_id=await get_criteria_id(convert_russian_to_enum(k)),
+            await db.commit()
 
-                )
+            feedback_score = FeedbackScore(
+                score_id=score.id,
+                feedback_id=feedback.id
+            )
 
-                db.add(score)
+            db.add(feedback_score)
 
-                await db.commit()
-
-                feedback_score = FeedbackScore(
-                    score_id=score.id,
-                    feedback_id=feedback.id
-                )
-
-                db.add(feedback_score)
-
-            j += 1
+        j += 1
 
     await db.commit()

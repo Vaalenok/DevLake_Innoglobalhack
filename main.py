@@ -5,29 +5,32 @@ from database import engine, Base, AsyncSessionLocal
 from initial_create_db import init_create_db
 from src.endpoints.users import router as users_router
 from src.endpoints.feedbacks import router as feedbacks_router
+import asyncio
 from src.models import user, feedback, criteria_type, score, feedback_score, score_history
 from src.models.criteria_type import CriteriaType
 
-
-# Создаем экземпляр FastAPI
 app = FastAPI()
 
 
-# Определим событие запуска для инициализации базы данных
-@app.on_event("startup")
-async def startup_event():
+async def init_db():
     async with AsyncSessionLocal() as session:
         async with engine.begin() as conn:
-            # Создаем модели в базе данных
             await conn.run_sync(Base.metadata.create_all)
 
-        # Проверка количества пользователей
         result = await session.execute(text("select count(*) from users"))
         user_count = result.scalar()
 
-        # Инициализируем БД (если необходимо)
         if user_count == 0:
             await init_create_db(session)
+        else:
+            # todo: перепроверка датасета,
+            # если записи нету в бд, то дополнить бд + оценивать моделью в случае отстуствия значений
+            pass
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(init_db())
 
 
 app.include_router(users_router)
@@ -41,10 +44,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Основной вызов для запуска FastAPI приложения
 if __name__ == "__main__":
     import uvicorn
 
-    # Запуск приложения FastAPI с использованием Uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
