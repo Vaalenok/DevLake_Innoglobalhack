@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from database import AsyncSessionLocal
-from src.models.feedback import Feedback
-from src.schemas.feedback import FeedbackSchema
+from src.models.score import Score
+from src.schemas.score import ScoreSchema
 
 
 router = APIRouter()
@@ -14,24 +14,25 @@ async def get_db() -> AsyncSession:
         yield session
 
 
-@router.get("/feedbacks", response_model=list[FeedbackSchema])
-async def get_feedbacks(
+@router.get("/scores", response_model=list[ScoreSchema])
+async def get_scores(
     db: AsyncSession = Depends(get_db),
     skip: int = Query(0, ge=0),
     limit: int = Query(10, gt=0)
 ):
     result = await db.execute(
-        select(Feedback)
+        select(Score)
         .offset(skip)
         .limit(limit)
     )
-    feedbacks = result.scalars().all()
-    return feedbacks
+    scores = result.scalars().all()
+    return scores
 
-@router.get("/feedbacks/{fb_id}", response_model=FeedbackSchema)
-async def get_feedback_by_id(fb_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Feedback).where(fb_id == Feedback.id))
-    feedback = result.scalar_one_or_none()
-    if feedback is None:
+
+@router.get("/scores/{score_id}", response_model=ScoreSchema)
+async def get_score_by_id(score_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Score).where(score_id == Score.id))
+    score = result.scalar_one_or_none()
+    if score is None:
         raise HTTPException(status_code=404, detail="User not found")
-    return feedback
+    return score

@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from database import AsyncSessionLocal
-from src.models.user import User  # Обратите внимание, что важно импортировать модель 'User'
+from src.models.feedback import Feedback
+from src.models.user import User
 from src.schemas.user import UserSchema
 
 
@@ -37,3 +38,17 @@ async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession = Depends(get_db))
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+@router.get("/users/{user_id}/reviews")
+async def get_user_reviews(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Feedback).where(user_id == Feedback.under_reviewer_id))
+    feedbacks = result.scalars().all()
+    return feedbacks
+
+
+@router.get("/users/{user_id}/own-reviews")
+async def get_user_own_reviews(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Feedback).where(user_id == Feedback.reviewer_id))
+    feedbacks = result.scalars().all()
+    return feedbacks
