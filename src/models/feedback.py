@@ -16,6 +16,6 @@ class Feedback(Base):
     reviewer_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'), nullable=False)
     under_reviewer_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'), nullable=False)
 
-    reviewer = relationship("User", back_populates="sent_feedback", foreign_keys=[reviewer_id])
-    under_reviewer = relationship("User", back_populates="get_feedback", foreign_keys=[under_reviewer_id])
+    reviewer = relationship("User", back_populates="sent_feedback", foreign_keys=[reviewer_id], lazy='selectin')
+    under_reviewer = relationship("User", back_populates="get_feedback", foreign_keys=[under_reviewer_id], lazy='selectin')
     scores = relationship("Score", secondary="feedbacks_scores", back_populates="feedbacks")

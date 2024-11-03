@@ -4,8 +4,8 @@ from sqlalchemy import text
 from database import engine, Base, AsyncSessionLocal
 from initial_create_db import init_create_db
 from src.endpoints.users import router as users_router
+from src.endpoints.feedbacks import router as feedbacks_router
 
-import src.db_interface as db
 from src.models import user, feedback, criteria_type, score, feedback_score, score_history
 
 # Создаем экземпляр FastAPI
@@ -28,6 +28,7 @@ async def startup_event():
             await init_create_db(session)
 
 app.include_router(users_router)
+app.include_router(feedbacks_router)
 
 
 # Основной вызов для запуска FastAPI приложения
