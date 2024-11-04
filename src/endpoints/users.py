@@ -22,18 +22,34 @@ async def get_all_users_async(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, gt=0)
 ):
-    result = await db.execute(
+    # Подзапрос для подсчета количества get_feedback для каждого пользователя
+    subquery = (
+        select(
+            Feedback.under_reviewer_id,
+            func.count(Feedback.id).label("feedback_count")
+        )
+        .group_by(Feedback.under_reviewer_id)
+        .subquery()
+    )
+
+    # Запрос пользователей с сортировкой по количеству полученных отзывов
+    users_query = (
         select(User)
+        .join(subquery, User.id == subquery.c.under_reviewer_id)
+        .order_by(subquery.c.feedback_count.desc())
         .offset(skip)
         .limit(limit)
     )
+
+    result = await db.execute(users_query)
     users = result.scalars().all()
 
-    # Исправление для получения общего числа пользователей
+    # Запрос для получение общего числа пользователей
     total_users_result = await db.execute(select(func.count()).select_from(User))
     total_users = total_users_result.scalar_one()
 
     return {"data": users, "total": total_users}
+
 
 
 
