@@ -12,5 +12,5 @@ class Score(Base):
     commentary: Mapped[str]
     criteria_type_id: Mapped[UUID] = mapped_column(ForeignKey('criteria_types.id'))
 
-    feedbacks = relationship("Feedback", secondary="feedbacks_scores", back_populates="scores")
-    criteria_type = relationship("CriteriaType", back_populates="scores")
+    feedbacks = relationship("Feedback", secondary="feedbacks_scores", back_populates="scores", lazy='selectin')
+    criteria_type = relationship("CriteriaType", back_populates="scores", lazy='selectin')

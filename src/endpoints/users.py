@@ -1,5 +1,6 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from database import AsyncSessionLocal
@@ -17,10 +18,9 @@ async def get_db() -> AsyncSession:
 
 @router.get("/users")
 async def get_all_users_async(
-        db: AsyncSession = Depends(get_db),
-        skip: int = Query(0, ge=0),
-        limit: int = Query(10, gt=0)
-
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, gt=0)
 ):
     result = await db.execute(
         select(User)
@@ -28,7 +28,13 @@ async def get_all_users_async(
         .limit(limit)
     )
     users = result.scalars().all()
-    return users
+
+    # Исправление для получения общего числа пользователей
+    total_users_result = await db.execute(select(func.count()).select_from(User))
+    total_users = total_users_result.scalar_one()
+
+    return {"data": users, "total": total_users}
+
 
 
 @router.get("/users/{user_id}", response_model=UserSchema)

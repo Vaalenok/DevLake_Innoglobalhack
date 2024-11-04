@@ -9,4 +9,4 @@ class CriteriaType(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     name: Mapped[str]
 
-    scores = relationship("Score", back_populates="criteria_type")
+    scores = relationship("Score", back_populates="criteria_type", lazy='selectin')

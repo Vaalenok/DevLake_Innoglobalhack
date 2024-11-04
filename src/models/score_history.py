@@ -18,4 +18,4 @@ class ScoreHistory(Base):
     initiative_commentary: Mapped[str] = mapped_column(String)
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'), nullable=False)
 
-    user = relationship("User", back_populates="score_history", foreign_keys=[user_id])
+    user = relationship("User", back_populates="score_history", foreign_keys=[user_id], lazy='selectin')
