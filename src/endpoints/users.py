@@ -1,4 +1,3 @@
-import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,9 +6,10 @@ from database import AsyncSessionLocal
 from src.models.feedback import Feedback
 from src.models.user import User
 from src.schemas.user import UserSchema
-
+import uuid
 
 router = APIRouter()
+
 
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
@@ -18,11 +18,10 @@ async def get_db() -> AsyncSession:
 
 @router.get("/users")
 async def get_all_users_async(
-    db: AsyncSession = Depends(get_db),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, gt=0)
+        db: AsyncSession = Depends(get_db),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(10, gt=0)
 ):
-    # Подзапрос для подсчета количества get_feedback для каждого пользователя
     subquery = (
         select(
             Feedback.under_reviewer_id,
@@ -32,7 +31,6 @@ async def get_all_users_async(
         .subquery()
     )
 
-    # Запрос пользователей с сортировкой по количеству полученных отзывов
     users_query = (
         select(User)
         .join(subquery, User.id == subquery.c.under_reviewer_id)
@@ -44,7 +42,6 @@ async def get_all_users_async(
     result = await db.execute(users_query)
     users = result.scalars().all()
 
-    # Запрос для получение общего числа пользователей
     total_users_result = await db.execute(select(func.count()).select_from(User))
     total_users = total_users_result.scalar_one()
 
@@ -74,3 +71,61 @@ async def get_user_own_reviews(user_id: uuid.UUID, db: AsyncSession = Depends(ge
     result = await db.execute(select(Feedback).where(user_id == Feedback.reviewer_id))
     feedbacks = result.scalars().all()
     return feedbacks
+
+
+CRITERIA_TYPE_MAP = {
+    "COMMUNICATION_SKILL": uuid.UUID("1a076fc9-c3ab-4682-860e-c68256688076"),
+    "PROFESSIONALISM": uuid.UUID("6a8b30c1-4c9c-4f07-af48-d1bab4a12fd4"),
+    "TEAMWORK": uuid.UUID("8ff4c472-de8b-4ca5-bbbb-d021e0854672"),
+    "INITIATIVE": uuid.UUID("ca915514-2cc2-4ad5-94d3-846d49edc12e")
+}
+
+
+@router.get("/users/{user_id}/scores")
+async def get_user_scores(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Feedback)
+        .where(Feedback.under_reviewer_id == user_id)
+    )
+    feedbacks = result.scalars().all()
+
+    if not feedbacks:
+        raise HTTPException(status_code=404, detail="Feedbacks not found")
+
+    scores_weighted = {
+        "professionalism": 0,
+        "teamwork": 0,
+        "communication": 0,
+        "initiative": 0
+    }
+    weights_sum = {
+        "professionalism": 0,
+        "teamwork": 0,
+        "communication": 0,
+        "initiative": 0
+    }
+
+    for feedback in feedbacks:
+        weight = feedback.informativeness + feedback.objectivity
+
+        for score in feedback.scores:
+            if score.criteria_type_id == CRITERIA_TYPE_MAP["PROFESSIONALISM"]:
+                scores_weighted["professionalism"] += score.score * weight
+                weights_sum["professionalism"] += weight
+            elif score.criteria_type_id == CRITERIA_TYPE_MAP["TEAMWORK"]:
+                scores_weighted["teamwork"] += score.score * weight
+                weights_sum["teamwork"] += weight
+            elif score.criteria_type_id == CRITERIA_TYPE_MAP["COMMUNICATION_SKILL"]:
+                scores_weighted["communication"] += score.score * weight
+                weights_sum["communication"] += weight
+            elif score.criteria_type_id == CRITERIA_TYPE_MAP["INITIATIVE"]:
+                scores_weighted["initiative"] += score.score * weight
+                weights_sum["initiative"] += weight
+
+    avg_scores = {
+        key: (scores_weighted[key] / weights_sum[key] if weights_sum[key] > 0 else 0)
+        for key in scores_weighted
+    }
+
+    return avg_scores
+
