@@ -17,3 +17,12 @@ class FeedbackSchema(BaseModel):
     class Config:
         from_attributes = True
         orm_mode = True
+
+
+class FeedbackCreateSchema(BaseModel):
+    feedback: str
+    reviewer_id: UUID
+    under_reviewer_id: UUID
+
+    class Config:
+        orm_mode = True
